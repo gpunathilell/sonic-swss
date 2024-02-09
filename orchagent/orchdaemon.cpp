@@ -60,7 +60,6 @@ Srv6Orch *gSrv6Orch;
 FlowCounterRouteOrch *gFlowCounterRouteOrch;
 DebugCounterOrch *gDebugCounterOrch;
 MonitorOrch *gMonitorOrch;
-gTxMonOrch *gTxMonOrch;
 
 bool gIsNatSupported = false;
 event_handle_t g_events_handle;
@@ -152,10 +151,7 @@ bool OrchDaemon::init()
     BgpGlobalStateOrch* bgp_global_state_orch;
     bgp_global_state_orch = new BgpGlobalStateOrch(m_configDb, CFG_BGP_DEVICE_GLOBAL_TABLE_NAME);
     gDirectory.set(bgp_global_state_orch);
-    TableConnector stateDbTxErr(m_stateDb, /*"TX_ERR_STATE"*/STATE_TX_ERR_TABLE_NAME);
-    TableConnector applDbTxErr(m_applDb, /*"TX_ERR_APPL"*/APP_TX_ERR_TABLE_NAME);
-    TableConnector confDbTxErr(m_configDb, /*"TX_ERR_CFG"*/CFG_PORT_TX_ERR_TABLE_NAME);
-    gTxMonOrch = new MonTxOrch(applDbTxErr, confDbTxErr, stateDbTxErr);
+
     gBfdOrch = new BfdOrch(m_applDb, APP_BFD_SESSION_TABLE_NAME, stateDbBfdSessionTable);
     gDirectory.set(gBfdOrch);
     static const  vector<string> route_pattern_tables = {
