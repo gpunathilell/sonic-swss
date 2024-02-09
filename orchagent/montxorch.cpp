@@ -271,7 +271,7 @@ void MonTxOrch::pollErrorStatistics()
         if (rc < 0)
             SWSS_LOG_NOTICE("TX_ERR_APPL: got port %s tx_err_stat failed %d\n", i.first.c_str(), rc);
         fields.emplace_back(TXMONORCH_FIELD_APPL_STATI, to_string(gettxPortErrCount(i.second)));
-        fields.emplace_back(TXMONORCH_FIELD_APPL_TIMESTAMP, currentDateTime().c_str());
+        fields.emplace_back(TXMONORCH_FIELD_APPL_TIMESTAMP, currentDateTime());
         fields.emplace_back(TXMONORCH_FIELD_APPL_SAIPORTID, to_string(gettxPortId(i.second)));
         m_TxErrorTable.set(i.first, fields);
         SWSS_LOG_NOTICE("TX_ERR_APPL: port %s tx_err_stat %ld, push to db\n", i.first.c_str(),
