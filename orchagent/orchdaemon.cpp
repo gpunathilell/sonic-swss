@@ -148,6 +148,11 @@ bool OrchDaemon::init()
     TableConnector stateDbBfdSessionTable(m_stateDb, STATE_BFD_SESSION_TABLE_NAME);
     gBfdOrch = new BfdOrch(m_applDb, APP_BFD_SESSION_TABLE_NAME, stateDbBfdSessionTable);
 
+    TableConnector stateDbTxErr(m_stateDb, /*"TX_ERR_STATE"*/STATE_TX_ERR_TABLE_NAME);
+    TableConnector applDbTxErr(m_applDb, /*"TX_ERR_APPL"*/APP_TX_ERR_TABLE_NAME);
+    TableConnector confDbTxErr(m_configDb, /*"TX_ERR_CFG"*/CFG_PORT_TX_ERR_TABLE_NAME);
+    gTxMonOrch = new MonTxOrch(applDbTxErr, confDbTxErr, stateDbTxErr);
+
     static const  vector<string> route_pattern_tables = {
         CFG_FLOW_COUNTER_ROUTE_PATTERN_TABLE_NAME,
     };
@@ -399,7 +404,7 @@ bool OrchDaemon::init()
      * when iterating ConsumerMap. This is ensured implicitly by the order of keys in ordered map.
      * For cases when Orch has to process tables in specific order, like PortsOrch during warm start, it has to override Orch::doTask()
      */
-    m_orchList = { gSwitchOrch, gCrmOrch, gPortsOrch, gBufferOrch, gFlowCounterRouteOrch, gIntfsOrch, gNeighOrch, gNhgMapOrch, gNhgOrch, gCbfNhgOrch, gRouteOrch, gCoppOrch, gQosOrch, wm_orch, gPolicerOrch, tunnel_decap_orch, sflow_orch, gDebugCounterOrch, gMacsecOrch, gBfdOrch, gSrv6Orch, mux_orch, mux_cb_orch, gMonitorOrch};
+    m_orchList = { gSwitchOrch, gCrmOrch, gPortsOrch, gBufferOrch, gFlowCounterRouteOrch, gIntfsOrch, gNeighOrch, gNhgMapOrch, gNhgOrch, gCbfNhgOrch, gRouteOrch, gCoppOrch, gQosOrch, wm_orch, gPolicerOrch, tunnel_decap_orch, sflow_orch, gDebugCounterOrch, gMacsecOrch, gBfdOrch, gSrv6Orch, mux_orch, mux_cb_orch, gMonitorOrch,gTxMonOrch};
 
     bool initialize_dtel = false;
     if (platform == BFN_PLATFORM_SUBSTRING || platform == VS_PLATFORM_SUBSTRING)
