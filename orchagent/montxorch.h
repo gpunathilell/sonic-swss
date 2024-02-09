@@ -76,6 +76,11 @@ using TxErrorStats = std::tuple<bool, sai_object_id_t, uint64_t, uint64_t>;
 using TxErrorStatMap = std::unordered_map<std::string, TxErrorStats>;
 
 
+//Function Declarations
+const std::string currentDateTime();
+
+
+
 
 //Class
 
