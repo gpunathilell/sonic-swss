@@ -65,13 +65,4 @@ class MonTxOrch : public Orch
         TxErrorStatMap m_TxPortsErrStat;
         SelectableTimer * m_pollTimer;
 };
-
-
-
-
-
-
-
-
-
 #endif  /*__MONTXORCH_H */
