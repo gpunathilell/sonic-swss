@@ -19,12 +19,11 @@ using namespace std::rel_ops;
 
 const std::string currentDateTime() 
 {
-    time_t     now = time(0);
-    struct tm  tstruct;
-    char       buf[80];
-    tstruct = *localtime(&now);
-    strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
-    return buf;
+    stringstream transTime;
+    time_t const now_c = time(NULL);
+    transTime << put_time(localtime(&now_c), "%a %d %b %Y - %I:%M:%S%p");
+    string myTime = transTime.str();
+    return  myTime;
 }
 
 MonTxOrch::MonTxOrch(TableConnector appDb, TableConnector confDb, TableConnector stateDb):
@@ -39,22 +38,15 @@ MonTxOrch::MonTxOrch(TableConnector appDb, TableConnector confDb, TableConnector
     SWSS_LOG_NOTICE("MonTxOrch initialized with the following tables %s %s \n",stateDb.second.c_str(),appDb.second.c_str());
 }
 
-void MonTxOrch::startTimer(uint32_t interval)
+void MonTxOrch::restartTimer(uint32_t interval)
 {
     SWSS_LOG_ENTER();
-    try
-    {
-        auto timespecInterval = timespec { .tv_sec = interval , .tv_nsec = 0 };
-        SWSS_LOG_INFO("MonTxOrch::startTimer with executor: %p\n", m_pollTimer);
-        m_pollPeriod = interval;
-        m_pollTimer->setInterval(timespecInterval);
-        m_pollTimer->stop();
-        m_pollTimer->start();
-    }
-    catch (...)
-    {
-        SWSS_LOG_ERROR("MonTxOrch::startTimer function failure\n");
-    }
+    auto timespecInterval = timespec { .tv_sec = interval , .tv_nsec = 0 };
+    SWSS_LOG_INFO(" with executor: %p\n", m_pollTimer);
+    m_pollTimer->stop();
+    m_pollPeriod = interval;
+    m_pollTimer->setInterval(timespecInterval);
+    m_pollTimer->start();
 }
 
 int MonTxOrch::periodUpdateHandler(const vector<FieldValueTuple>& data)
@@ -70,30 +62,31 @@ int MonTxOrch::periodUpdateHandler(const vector<FieldValueTuple>& data)
             {
                 
                 newPollPeriod =  static_cast<uint32_t>(stoul(fvValue(iter_)));
-                restart |= (m_pollPeriod != newPollPeriod);  //Differenc in current period and existing poll period causes restart
-                SWSS_LOG_INFO("MonTxOrch::periodUpdateHandler Update Monitoring Period to %u\n", newPollPeriod);
+                restart = restart || (m_pollPeriod != newPollPeriod);  //Difference in current period and existing poll period causes restart
+                SWSS_LOG_INFO("Update Monitoring Period to %u\n", newPollPeriod);
             }
             else
             {
-                SWSS_LOG_ERROR("MonTxOrch::periodUpdateHandler Invalid field type provided: %s\n", fvField(iter_).c_str());
+                SWSS_LOG_ERROR("Invalid field type provided: %s\n", fvField(iter_).c_str());
                 return -1;
             }
         }
         catch (...) 
         {
-            SWSS_LOG_ERROR("MonTxOrch::periodUpdateHandler Function failure\n");
+            SWSS_LOG_ERROR("Function failure\n");
             return -1;
         }
     }
     if (restart)
     {
-        startTimer(newPollPeriod);
-        SWSS_LOG_INFO("MonTxOrch::periodUpdateHandler startTimer function called\n");
+        restartTimer(newPollPeriod);
+        SWSS_LOG_INFO("restartTimer function called\n");
     }
     return 0;
 }
 
-int MonTxOrch::thresholdUpdateHandler(const string &port, const vector<FieldValueTuple>& data, bool clear){
+int MonTxOrch::thresholdUpdateHandler(const string &port, const vector<FieldValueTuple>& data, bool clear)
+{
     SWSS_LOG_ENTER();
     try 
     {
@@ -105,35 +98,36 @@ int MonTxOrch::thresholdUpdateHandler(const string &port, const vector<FieldValu
             SWSS_LOG_INFO("TX_ERR threshold cleared for port %s\n", port.c_str());
         }
         else
+        {
+            for (auto iter_ : data)
             {
-                for (auto iter_ : data)
+                if (MONTXORCH_CFG_THRESHOLD == fvField(iter_))
                 {
-                    if (MONTXORCH_CFG_THRESHOLD == fvField(iter_))
-                    {
-                        TxErrorStats &tesTuple = m_TxPortsErrStat[port];
-                        if (gettxPortId(tesTuple) == 0)
-                        {         
-                            Port saiport;
-                            if (gPortsOrch->getPort(port, saiport))
-                            {
-                                gettxPortId(tesTuple) = saiport.m_port_id;
-                            }
-                            gettxPortState(tesTuple) = false;
+                    TxErrorStats &tesTuple = m_TxPortsErrStat[port];
+                    if (gettxPortId(tesTuple) == 0)
+                    {         
+                        Port saiport;
+                        if (gPortsOrch->getPort(port, saiport))
+                        {
+                            gettxPortId(tesTuple) = saiport.m_port_id;
                         }
-                        gettxPortThreshold(tesTuple) = static_cast<uint64_t>(stoul(fvValue(iter_)));
-                        SWSS_LOG_INFO("MonTxOrch::thresholdUpdateHandler threshold updated to %ld for port %s\n", gettxPortThreshold(tesTuple), port.c_str());
+                        gettxPortState(tesTuple) = false;
+                        gettxPortInitializedNow(tesTuple) = true;
                     }
-                    else
-                    {
-                        SWSS_LOG_ERROR("MonTxOrch::thresholdUpdateHandler Unknown field type %s threshold for %s\n", fvField(iter_).c_str(), port.c_str());
-                        return -1;
-                    }
+                    gettxPortThreshold(tesTuple) = static_cast<uint64_t>(stoul(fvValue(iter_)));
+                    SWSS_LOG_INFO("threshold updated to %ld for port %s\n", gettxPortThreshold(tesTuple), port.c_str());
+                }
+                else
+                {
+                    SWSS_LOG_ERROR("Unknown field type %s threshold for %s\n", fvField(iter_).c_str(), port.c_str());
+                    return -1;
                 }
             }
+        }
     }
     catch (...) 
     {
-        SWSS_LOG_ERROR("Fail to startTimer handle periodic update\n");
+        SWSS_LOG_ERROR("Failed to handle threshold update\n");
     }
     return 0;
 }
@@ -144,7 +138,7 @@ void MonTxOrch::doTask(Consumer& consumer)
     SWSS_LOG_ENTER();
     if (!gPortsOrch->allPortsReady())
     {
-        SWSS_LOG_INFO("MonTxOrch::doTask Ports not ready\n");
+        SWSS_LOG_INFO("Ports not ready\n");
         return;
     }
     for (auto it = consumer.m_toSync.begin();it != consumer.m_toSync.end();)
@@ -154,7 +148,7 @@ void MonTxOrch::doTask(Consumer& consumer)
         string op = kfvOp(t);
         vector<FieldValueTuple> fvs = kfvFieldsValues(t);
         rc = -1;
-        SWSS_LOG_INFO("MonTxOrch::doTask %s operation %s set %s del %s\n", key.c_str(),op.c_str(), SET_COMMAND, DEL_COMMAND);
+        SWSS_LOG_INFO("%s operation %s set %s del %s\n", key.c_str(),op.c_str(), SET_COMMAND, DEL_COMMAND);
         if (key == TXPORTMONORCH_KEY_CFG_PERIOD)
         {
             if (op == SET_COMMAND)
@@ -193,7 +187,7 @@ void MonTxOrch::doTask(Consumer& consumer)
 int MonTxOrch::pollOnePortErrorStatistics(const string &port, TxErrorStats  &stat)
 {
     uint64_t txErrStatistics = 0,txErrStatLasttime = gettxPortErrCount(stat),txErrStatThreshold = gettxPortThreshold(stat);
-    bool tx_error_state,tx_error_state_lasttime = gettxPortState(stat);    
+    bool tx_error_state,tx_error_state_lasttime = gettxPortState(stat),initializedPort = gettxPortInitializedNow(stat);    
     static const vector<sai_stat_id_t> txErrStatId = {SAI_PORT_STAT_IF_OUT_ERRORS};
     uint64_t tx_err = -1;
     SWSS_LOG_ENTER();
@@ -202,17 +196,18 @@ int MonTxOrch::pollOnePortErrorStatistics(const string &port, TxErrorStats  &sta
                                     txErrStatId.data(),
                                     &tx_err);
     txErrStatistics = tx_err;
-    SWSS_LOG_INFO("MonTxOrch::pollOnePortErrorStatistics got port %s tx_err stati %ld, lasttime %ld threshold %ld and the difference would be %ld and truth value%d\n", 
+    SWSS_LOG_INFO("Got port %s tx_err stati %ld, lasttime %ld threshold %ld and the difference would be %ld and truth value%d\n", 
                     port.c_str(), txErrStatistics, txErrStatLasttime, txErrStatThreshold,(txErrStatistics - txErrStatLasttime),((txErrStatistics - txErrStatLasttime) > txErrStatThreshold));
     tx_error_state = ((txErrStatistics - txErrStatLasttime) > txErrStatThreshold);
-	if (tx_error_state != tx_error_state_lasttime)
+	if ((tx_error_state != tx_error_state_lasttime)|| initializedPort)
 	{
 		gettxPortState(stat) = tx_error_state;   
 		//set status in STATE_DB
 		vector<FieldValueTuple> fvs;
 		fvs.emplace_back(TXMONORCH_FIELD_STATE_TX_STATE, to_string(tx_error_state));
 		m_stateTxErrorTable.set(port, fvs);
-		SWSS_LOG_INFO("MonTxOrch::pollOnePortErrorStatistics port %s state changed to %d from %d, push to db\n", port.c_str(), tx_error_state,tx_error_state_lasttime);
+        gettxPortInitializedNow(stat) = false;
+		SWSS_LOG_INFO("Port %s state changed to %d from %d, push to db\n", port.c_str(), tx_error_state,tx_error_state_lasttime);
 	}
 	gettxPortErrCount(stat) = txErrStatistics;
 	return 0;
@@ -234,10 +229,13 @@ void MonTxOrch::pollErrorStatistics()
         fields.emplace_back(TXMONORCH_FIELD_APPL_STATI, to_string(gettxPortErrCount(i.second)));
         fields.emplace_back(TXMONORCH_FIELD_APPL_TIMESTAMP, currentDateTime());
         fields.emplace_back(TXMONORCH_FIELD_APPL_SAIPORTID, to_string(gettxPortId(i.second)));
+        vector<string> keys;
+
         m_TxErrorTable.set(i.first, fields);
         SWSS_LOG_NOTICE("TX_ERR_APPL: port %s tx_err_stat %ld, push to db\n", i.first.c_str(),
                         gettxPortErrCount(i.second));
     }
+
     m_TxErrorTable.flush();
     m_stateTxErrorTable.flush();
     SWSS_LOG_INFO("TX_ERR_APPL: flushing tables\n");

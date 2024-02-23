@@ -33,11 +33,12 @@ extern "C" {
 #define gettxPortId std::get<1>
 #define gettxPortErrCount std::get<2>
 #define gettxPortThreshold std::get<3>
+#define gettxPortInitializedNow std::get<4>
 
 #define TXMONORCH_PORT_STATE_OK         0
 #define TXMONORCH_PORT_STATE_ERROR      1
 
-using TxErrorStats = std::tuple<bool, sai_object_id_t, uint64_t, uint64_t>;
+using TxErrorStats = std::tuple<bool, sai_object_id_t, uint64_t, uint64_t,bool>;
 using TxErrorStatMap = std::unordered_map<std::string, TxErrorStats>;
 
 const std::string currentDateTime();
@@ -51,18 +52,18 @@ class MonTxOrch : public Orch
 
     }
     private:
-        void startTimer(uint32_t interval);
-        int periodUpdateHandler(const vector<FieldValueTuple>& data); 
-        int thresholdUpdateHandler(const string &port, const vector<FieldValueTuple>& data, bool clear);
-        int pollOnePortErrorStatistics(const string &port, TxErrorStats  &stat);
-        void pollErrorStatistics();
-        void doTask(Consumer& consumer);
-        void doTask(SelectableTimer& timer);
-        
-        uint32_t m_pollPeriod=0;    
-        Table m_TxErrorTable;
-        Table m_stateTxErrorTable;
-        TxErrorStatMap m_TxPortsErrStat;
-        SelectableTimer * m_pollTimer;
+    void restartTimer(uint32_t interval);
+    int periodUpdateHandler(const vector<FieldValueTuple>& data); 
+    int thresholdUpdateHandler(const string &port, const vector<FieldValueTuple>& data, bool clear);
+    int pollOnePortErrorStatistics(const string &port, TxErrorStats  &stat);
+    void pollErrorStatistics();
+    void doTask(Consumer& consumer);
+    void doTask(SelectableTimer& timer);
+    
+    uint32_t m_pollPeriod=0;    
+    Table m_TxErrorTable;
+    Table m_stateTxErrorTable;
+    TxErrorStatMap m_TxPortsErrStat;
+    SelectableTimer * m_pollTimer;
 };
 #endif  /*__MONTXORCH_H */
