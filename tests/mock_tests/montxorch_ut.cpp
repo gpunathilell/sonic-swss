@@ -50,13 +50,10 @@ class MonTxOrchTest : public ::testing::Test
                 { "SAI_VS_SWITCH_TYPE", "SAI_VS_SWITCH_TYPE_BCM56850" },
                 { "KV_DEVICE_MAC_ADDRESS", "20:03:04:05:06:00" }
             };
-
         ut_helper::initSaiApi(profile);
         sai_attribute_t attr;
-
         attr.id = SAI_SWITCH_ATTR_INIT_SWITCH;
         attr.value.booldata = true;
-
         auto status = sai_switch_api->create_switch(&gSwitchId, 1, &attr);
         ASSERT_EQ(status, SAI_STATUS_SUCCESS);
         m_config_db = std::make_shared<swss::DBConnector>("CONFIG_DB", 0);
@@ -71,18 +68,15 @@ class MonTxOrchTest : public ::testing::Test
         TableConnector stateDbSwitchTable(m_state_db.get(), "SWITCH_CAPABILITY");
         TableConnector conf_asic_sensors(m_config_db.get(), CFG_ASIC_SENSORS_TABLE_NAME);
         TableConnector app_switch_table(m_app_db.get(),  APP_SWITCH_TABLE_NAME);
-        
         vector<TableConnector> switch_tables = {
                 conf_asic_sensors,
                 app_switch_table
         };
         ASSERT_EQ(gSwitchOrch, nullptr);
         gSwitchOrch = new SwitchOrch(m_app_db.get(), switch_tables, stateDbSwitchTable);
-        vector<string> flex_counter_tables = {
-                CFG_FLEX_COUNTER_TABLE_NAME
-            };
-            auto* flexCounterOrch = new FlexCounterOrch(m_config_db.get(), flex_counter_tables);
-            gDirectory.set(flexCounterOrch);
+        vector<string> flex_counter_tables = {CFG_FLEX_COUNTER_TABLE_NAME};
+        auto* flexCounterOrch = new FlexCounterOrch(m_config_db.get(), flex_counter_tables);
+        gDirectory.set(flexCounterOrch);
         ASSERT_EQ(gPortsOrch, nullptr);
         gPortsOrch = new PortsOrch(m_app_db.get(), m_state_db.get(), ports_tables, m_chassis_app_db.get());
         auto consumer = unique_ptr<Consumer>(new Consumer(
