@@ -279,11 +279,11 @@ bool DashTunnelOrch::addTunnel(const std::string& tunnel_name, DashTunnelBulkCon
         return remove_from_consumer;
     }
 
-    tunnel_attr.id = SAI_DASH_TUNNEL_ATTR_MAX_MEMBER_SIZE;
+    /*tunnel_attr.id = SAI_DASH_TUNNEL_ATTR_MAX_MEMBER_SIZE;
     tunnel_attr.value.u32 = ctxt.metadata.endpoints_size();
-    tunnel_attrs.push_back(tunnel_attr);
+    tunnel_attrs.push_back(tunnel_attr);*/
 
-    tunnel_attr.id = SAI_DASH_TUNNEL_ATTR_DASH_ENCAPSULATION;
+    /*tunnel_attr.id = SAI_DASH_TUNNEL_ATTR_DASH_ENCAPSULATION;
     switch (ctxt.metadata.encap_type())
     {
         case dash::route_type::ENCAP_TYPE_VXLAN:
@@ -296,16 +296,16 @@ bool DashTunnelOrch::addTunnel(const std::string& tunnel_name, DashTunnelBulkCon
             SWSS_LOG_ERROR("Unsupported encap type %d", ctxt.metadata.encap_type());
             return remove_from_consumer;
     }
-    tunnel_attrs.push_back(tunnel_attr);
+    tunnel_attrs.push_back(tunnel_attr);*/
 
     tunnel_attr.id = SAI_DASH_TUNNEL_ATTR_TUNNEL_KEY;
     tunnel_attr.value.u32 = ctxt.metadata.vni();
     tunnel_attrs.push_back(tunnel_attr);
 
-    tunnel_attr.id = SAI_DASH_TUNNEL_ATTR_SIP;
+    /*tunnel_attr.id = SAI_DASH_TUNNEL_ATTR_SIP;
     auto tunnel_sip = dash_orch->getApplianceVip();
     to_sai(tunnel_sip, tunnel_attr.value.ipaddr);
-    tunnel_attrs.push_back(tunnel_attr);
+    tunnel_attrs.push_back(tunnel_attr);*/
 
     // deduplicate endpoint IPs
     std::sort(ctxt.metadata.mutable_endpoints()->begin(), ctxt.metadata.mutable_endpoints()->end(), ipAddrLt);
