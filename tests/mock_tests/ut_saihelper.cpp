@@ -139,6 +139,7 @@ namespace ut_helper
         sai_dash_direction_lookup_api = nullptr;
         sai_dash_eni_api = nullptr;
         sai_dash_ha_api = nullptr;
+        sai_dash_trusted_vni_api = nullptr;
         sai_stp_api = nullptr;
 
         return SAI_STATUS_SUCCESS;
